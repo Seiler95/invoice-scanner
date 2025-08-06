@@ -1,0 +1,2792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Construction Invoice Scanner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .ai-badge {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .ai-badge.learning {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .upload-zone {
+            border: 3px dashed #667eea;
+            border-radius: 20px;
+            padding: 60px 20px;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(102,126,234,0.05) 0%, rgba(118,75,162,0.05) 100%);
+            margin-bottom: 30px;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .upload-zone.dragover {
+            border-color: #764ba2;
+            background: linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%);
+            transform: scale(1.02);
+        }
+        
+        .upload-zone.processing {
+            border-color: #4CAF50;
+            background: linear-gradient(135deg, rgba(76,175,80,0.1) 0%, rgba(76,175,80,0.05) 100%);
+        }
+        
+        .upload-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+        
+        .upload-text {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .upload-subtext {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin-right: 10px;
+            display: inline-block;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336 0%, #e91e63 100%);
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.85em;
+        }
+        
+        .processing-indicator {
+            display: none;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f0f7ff;
+            border-radius: 10px;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .processing-indicator.active {
+            display: block;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .extracted-data {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .confidence-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .confidence-high {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .confidence-medium {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+        
+        .confidence-low {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .field-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .field {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .field label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .field input, .field select, .field textarea {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+        
+        .field input.ai-filled {
+            border-color: #667eea;
+            background: rgba(102,126,234,0.05);
+        }
+        
+        .field input.user-modified {
+            border-color: #4CAF50;
+            background: rgba(76,175,80,0.05);
+        }
+        
+        .field input:focus {
+            outline: none;
+            border-color: #764ba2;
+        }
+        
+        .line-items-container {
+            margin: 20px 0;
+        }
+        
+        .line-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .line-item.ai-suggested {
+            border-color: #667eea;
+        }
+        
+        .line-item.user-verified {
+            border-color: #4CAF50;
+        }
+        
+        .line-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .line-item-title {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .line-item-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .line-item-fields {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr 0.5fr;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .ai-suggestion {
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #2196F3;
+            font-size: 0.9em;
+        }
+        
+        .learning-feedback {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            align-items: center;
+        }
+        
+        .feedback-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.85em;
+        }
+        
+        .feedback-btn:hover {
+            background: #f5f5f5;
+        }
+        
+        .feedback-btn.correct {
+            border-color: #4CAF50;
+            color: #4CAF50;
+        }
+        
+        .feedback-btn.incorrect {
+            border-color: #f44336;
+            color: #f44336;
+        }
+        
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .known-patterns {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .pattern-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+            align-items: center;
+        }
+        
+        .pattern-item:last-child {
+            border-bottom: none;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: #666;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            background: rgba(102,126,234,0.05);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .history-table th, .history-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .history-table th {
+            background: #f5f5f5;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .history-table tbody tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid;
+        }
+        
+        .alert-success {
+            background: #e8f5e9;
+            border-color: #4CAF50;
+            color: #2e7d32;
+        }
+        
+        .alert-warning {
+            background: #fff3e0;
+            border-color: #ff9800;
+            color: #ef6c00;
+        }
+        
+        .alert-error {
+            background: #ffebee;
+            border-color: #f44336;
+            color: #c62828;
+        }
+        
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        
+        .batch-upload-zone {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .export-options {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .field-group {
+                grid-template-columns: 1fr;
+            }
+            
+            .line-item-fields {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .tabs {
+                flex-wrap: wrap;
+            }
+            
+            .quick-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI-Powered Invoice Scanner</h1>
+            <p>Upload invoices for automatic data extraction and smart categorization</p>
+            <div class="ai-badge" id="aiBadge">
+                <span>🧠</span>
+                <span id="aiStatus">AI Ready</span>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-value" id="invoicesProcessed">0</div>
+                    <div class="stat-label">Invoices Processed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="accuracyRate">0%</div>
+                    <div class="stat-label">AI Accuracy</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="timeSaved">0h</div>
+                    <div class="stat-label">Time Saved</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="knownSubbies">0</div>
+                    <div class="stat-label">Known Subcontractors</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalValue">$0</div>
+                    <div class="stat-label">Total Value Processed</div>
+                </div>
+            </div>
+            
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('scan', this)">📷 Scan Invoice</button>
+                <button class="tab" onclick="switchTab('batch', this)">📁 Batch Process</button>
+                <button class="tab" onclick="switchTab('patterns', this)">🧠 AI Learning</button>
+                <button class="tab" onclick="switchTab('history', this)">📊 Processing History</button>
+                <button class="tab" onclick="switchTab('reports', this)">📈 Analytics</button>
+            </div>
+            
+            <!-- Scan Tab -->
+            <div id="scan" class="tab-content active">
+                <div class="upload-zone" id="uploadZone" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text">Drop Invoice Here</div>
+                    <div class="upload-subtext">or click to browse (PDF, Image, or CSV)</div>
+                    <input type="file" id="fileInput" class="file-input" accept=".pdf,.jpg,.jpeg,.png,.csv" onchange="handleFileSelect(event)" multiple>
+                    <button class="btn" onclick="document.getElementById('fileInput').click()">Choose Files</button>
+                </div>
+                
+                <div class="quick-actions">
+                    <button class="btn btn-success" onclick="testFunction()">🧪 Test JavaScript</button>
+                    <button class="btn btn-success" onclick="simulateQuickScan('painting')">🎨 Quick: Painting Invoice</button>
+                    <button class="btn btn-success" onclick="simulateQuickScan('mixed')">🔧 Quick: Mixed Work</button>
+                    <button class="btn btn-success" onclick="simulateQuickScan('variation')">📋 Quick: Variation Work</button>
+                </div>
+                
+                <div class="processing-indicator" id="processingIndicator">
+                    <h3>🔍 AI Processing Invoice...</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%">0%</div>
+                    </div>
+                    <div id="processingSteps">
+                        <p>📄 Reading document...</p>
+                    </div>
+                </div>
+                
+                <div class="extracted-data" id="extractedData" style="display: none;">
+                    <h2 class="section-title">
+                        ✨ Extracted Invoice Data
+                        <span class="confidence-badge" id="confidenceBadge">High Confidence</span>
+                    </h2>
+                    
+                    <div class="ai-suggestion">
+                        💡 <strong>AI Detection:</strong> <span id="aiDetection">This appears to be a painting invoice from a regular subcontractor.</span>
+                    </div>
+                    
+                    <div class="field-group">
+                        <div class="field">
+                            <label>Invoice Number <span class="confidence-indicator">●</span></label>
+                            <input type="text" id="extractedInvNumber" class="ai-filled" onchange="markFieldModified(this)">
+                        </div>
+                        <div class="field">
+                            <label>Date <span class="confidence-indicator">●</span></label>
+                            <input type="date" id="extractedDate" class="ai-filled" onchange="markFieldModified(this)">
+                        </div>
+                        <div class="field">
+                            <label>Subcontractor <span class="confidence-indicator">●</span></label>
+                            <input type="text" id="extractedSubcontractor" class="ai-filled" list="knownSubbiesList" onchange="markFieldModified(this)">
+                            <datalist id="knownSubbiesList"></datalist>
+                        </div>
+                        <div class="field">
+                            <label>ABN <span class="confidence-indicator">●</span></label>
+                            <input type="text" id="extractedABN" class="ai-filled" onchange="markFieldModified(this)">
+                        </div>
+                        <div class="field">
+                            <label>Total Amount <span class="confidence-indicator">●</span></label>
+                            <input type="number" id="extractedTotal" class="ai-filled" step="0.01" onchange="markFieldModified(this)">
+                        </div>
+                        <div class="field">
+                            <label>GST Amount</label>
+                            <input type="number" id="extractedGST" class="ai-filled" step="0.01" onchange="markFieldModified(this)">
+                        </div>
+                        <div class="field">
+                            <label>Project/Site <span class="confidence-indicator">●</span></label>
+                            <input type="text" id="extractedProject" class="ai-filled" list="knownProjectsList" onchange="markFieldModified(this)">
+                            <datalist id="knownProjectsList"></datalist>
+                        </div>
+                        <div class="field">
+                            <label>Payment Terms</label>
+                            <select id="extractedTerms" class="ai-filled" onchange="markFieldModified(this)">
+                                <option value="30">30 days</option>
+                                <option value="14">14 days</option>
+                                <option value="7">7 days</option>
+                                <option value="COD">Cash on Delivery</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <h3 style="margin: 20px 0;">Line Items (AI Categorized)</h3>
+                    <div class="line-items-container" id="lineItemsContainer">
+                        <!-- Line items will be populated here -->
+                    </div>
+                    
+                    <button class="btn btn-warning" onclick="addNewLineItem()">+ Add Line Item</button>
+                    
+                    <div class="learning-feedback">
+                        <span>How did the AI do?</span>
+                        <button class="feedback-btn correct" onclick="provideFeedback('correct')">✓ Mostly Correct</button>
+                        <button class="feedback-btn incorrect" onclick="provideFeedback('needsWork')">✗ Needs Improvement</button>
+                        <button class="feedback-btn" onclick="provideFeedback('perfect')">🎯 Perfect!</button>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-success" onclick="confirmAndSave()">✓ Confirm & Save</button>
+                        <button class="btn btn-warning" onclick="trainOnCorrections()">🧠 Train AI on My Corrections</button>
+                        <button class="btn btn-danger" onclick="clearExtractedData()">✗ Clear</button>
+                        <button class="btn" onclick="exportToCSV()">📊 Export CSV</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Batch Processing Tab -->
+            <div id="batch" class="tab-content">
+                <div class="extracted-data">
+                    <h2 class="section-title">📁 Batch Invoice Processing</h2>
+                    
+                    <div class="batch-upload-zone" id="batchUploadZone" ondrop="handleBatchDrop(event)" ondragover="handleBatchDragOver(event)" ondragleave="handleBatchDragLeave(event)">
+                        <div class="upload-icon">📁</div>
+                        <div class="upload-text">Drop Multiple Invoices Here</div>
+                        <div class="upload-subtext">Process up to 50 invoices at once</div>
+                        <input type="file" id="batchFileInput" class="file-input" accept=".pdf,.jpg,.jpeg,.png" multiple onchange="handleBatchFileSelect(event)">
+                        <button class="btn" onclick="document.getElementById('batchFileInput').click()">Select Multiple Files</button>
+                    </div>
+                    
+                    <div id="batchProgress" style="display: none;">
+                        <h3>Processing Batch...</h3>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="batchProgressFill" style="width: 0%">0%</div>
+                        </div>
+                        <div id="batchStatus">Ready to process...</div>
+                    </div>
+                    
+                    <div id="batchResults" style="display: none;">
+                        <h3>Batch Processing Results</h3>
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>File</th>
+                                    <th>Status</th>
+                                    <th>Subcontractor</th>
+                                    <th>Amount</th>
+                                    <th>Confidence</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="batchResultsBody"></tbody>
+                        </table>
+                        
+                        <div class="export-options">
+                            <button class="btn btn-success" onclick="exportBatchResults()">📊 Export All Results</button>
+                            <button class="btn btn-warning" onclick="reviewLowConfidence()">🔍 Review Low Confidence</button>
+                            <button class="btn" onclick="clearBatchResults()">✗ Clear Results</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- AI Learning Tab -->
+            <div id="patterns" class="tab-content">
+                <div class="extracted-data">
+                    <h2 class="section-title">🧠 AI Learning Dashboard</h2>
+                    
+                    <div class="alert alert-success">
+                        <strong>AI Performance:</strong> The system is learning from your corrections and getting smarter with each invoice!
+                    </div>
+                    
+                    <h3 style="margin: 20px 0;">Recognized Subcontractors</h3>
+                    <div class="known-patterns" id="subcontractorPatterns">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    
+                    <h3 style="margin: 20px 0;">Common Line Item Patterns</h3>
+                    <div class="known-patterns" id="itemPatterns">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    
+                    <h3 style="margin: 20px 0;">Price Intelligence</h3>
+                    <div class="known-patterns" id="pricePatterns">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    
+                    <div class="export-options">
+                        <button class="btn btn-warning" onclick="exportLearningData()">📥 Export AI Training Data</button>
+                        <button class="btn" onclick="importLearningData()">📤 Import Training Data</button>
+                        <button class="btn btn-danger" onclick="resetAILearning()">🔄 Reset AI Learning</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- History Tab -->
+            <div id="history" class="tab-content">
+                <div class="extracted-data">
+                    <h2 class="section-title">📊 Processing History</h2>
+                    
+                    <div class="quick-actions">
+                        <button class="btn" onclick="filterHistory('today')">Today</button>
+                        <button class="btn" onclick="filterHistory('week')">This Week</button>
+                        <button class="btn" onclick="filterHistory('month')">This Month</button>
+                        <button class="btn" onclick="filterHistory('all')">All Time</button>
+                        <input type="text" placeholder="Search invoices..." id="historySearch" onkeyup="searchHistory()" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    </div>
+                    
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Invoice #</th>
+                                <th>Subcontractor</th>
+                                <th>Project</th>
+                                <th>Amount</th>
+                                <th>AI Accuracy</th>
+                                <th>Processing Time</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <!-- History will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Analytics Tab -->
+            <div id="reports" class="tab-content">
+                <div class="extracted-data">
+                    <h2 class="section-title">📈 Analytics & Reports</h2>
+                    
+                    <div class="stats-container">
+                        <div class="stat-card">
+                            <div class="stat-value" id="monthlyVolume">$0</div>
+                            <div class="stat-label">This Month's Volume</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="avgProcessingTime">0s</div>
+                            <div class="stat-label">Avg Processing Time</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="topSubcontractor">-</div>
+                            <div class="stat-label">Top Subcontractor</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="errorRate">0%</div>
+                            <div class="stat-label">Error Rate</div>
+                        </div>
+                    </div>
+                    
+                    <div class="field-group">
+                        <div class="field">
+                            <label>Report Type</label>
+                            <select id="reportType" onchange="generateReport()">
+                                <option value="summary">Summary Report</option>
+                                <option value="subcontractor">Subcontractor Analysis</option>
+                                <option value="project">Project Breakdown</option>
+                                <option value="category">Work Category Analysis</option>
+                                <option value="timeline">Timeline Analysis</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Date Range</label>
+                            <select id="dateRange" onchange="generateReport()">
+                                <option value="7">Last 7 days</option>
+                                <option value="30">Last 30 days</option>
+                                <option value="90">Last 3 months</option>
+                                <option value="365">Last year</option>
+                                <option value="all">All time</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="reportContainer">
+                        <div class="alert alert-warning">
+                            Select a report type to generate analytics
+                        </div>
+                    </div>
+                    
+                    <div class="export-options">
+                        <button class="btn btn-success" onclick="exportReport('pdf')">📄 Export PDF</button>
+                        <button class="btn btn-success" onclick="exportReport('excel')">📊 Export Excel</button>
+                        <button class="btn" onclick="emailReport()">📧 Email Report</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Enhanced AI Learning Database
+        let aiDatabase = {
+            subcontractors: new Map(),
+            itemPatterns: new Map(),
+            pricePatterns: new Map(),
+            projectPatterns: new Map(),
+            invoicesProcessed: 0,
+            correctPredictions: 0,
+            totalPredictions: 0,
+            processingHistory: [],
+            totalValueProcessed: 0,
+            processingTimes: [],
+            batchResults: [],
+            settings: {
+                confidenceThreshold: 0.8,
+                autoSave: true,
+                emailAlerts: false
+            }
+        };
+        
+        // Enhanced initialization (without localStorage in Claude environment)
+        function initializeAI() {
+            // In Claude environment, localStorage is not available
+            // Load from memory instead
+            console.log('Initializing AI system...');
+            
+            // Initialize with base patterns if empty
+            if (aiDatabase.subcontractors.size === 0) {
+                aiDatabase.subcontractors.set('brett davidson', {
+                    name: 'Brett Davidson',
+                    abn: '49481102558',
+                    category: 'Painting',
+                    confidence: 0.95,
+                    averageAmount: 1500,
+                    invoiceCount: 15,
+                    paymentTerms: '30'
+                });
+                
+                aiDatabase.subcontractors.set('youzhong', {
+                    name: 'Youzhong PTY LTD',
+                    abn: '91605132465',
+                    category: 'Various',
+                    confidence: 0.90,
+                    averageAmount: 2200,
+                    invoiceCount: 8,
+                    paymentTerms: '14'
+                });
+                
+                aiDatabase.subcontractors.set('master painters', {
+                    name: 'Master Painters Co',
+                    abn: '12345678901',
+                    category: 'Painting',
+                    confidence: 0.88,
+                    averageAmount: 1800,
+                    invoiceCount: 22,
+                    paymentTerms: '30'
+                });
+            }
+            
+            // Initialize item patterns
+            if (aiDatabase.itemPatterns.size === 0) {
+                const patterns = [
+                    { key: 'prepaint', type: 'contract', confidence: 0.95, avgPrice: 550 },
+                    { key: 'pre-paint', type: 'contract', confidence: 0.95, avgPrice: 550 },
+                    { key: 'patch', type: 'variation', confidence: 0.88, avgPrice: 200 },
+                    { key: 'cut out', type: 'variation', confidence: 0.85, avgPrice: 180 },
+                    { key: 'repair', type: 'loss', confidence: 0.72, avgPrice: 150 },
+                    { key: 'fix', type: 'loss', confidence: 0.70, avgPrice: 120 },
+                    { key: 'extra', type: 'variation', confidence: 0.90, avgPrice: 300 },
+                    { key: 'additional', type: 'variation', confidence: 0.85, avgPrice: 250 },
+                    { key: 'painting', type: 'contract', confidence: 0.92, avgPrice: 800 },
+                    { key: 'primer', type: 'contract', confidence: 0.90, avgPrice: 400 },
+                    { key: 'touch up', type: 'variation', confidence: 0.80, avgPrice: 100 },
+                    { key: 'scaffold', type: 'contract', confidence: 0.85, avgPrice: 500 }
+                ];
+                
+                patterns.forEach(p => {
+                    aiDatabase.itemPatterns.set(p.key, {
+                        type: p.type,
+                        confidence: p.confidence,
+                        avgPrice: p.avgPrice,
+                        count: Math.floor(Math.random() * 20) + 5
+                    });
+                });
+            }
+            
+            // Initialize project patterns
+            if (aiDatabase.projectPatterns.size === 0) {
+                const projects = ['Stoddart Cladding', 'Darra Project', 'Victoria Point', 'Redland Bay', 'Pallara Development'];
+                projects.forEach(project => {
+                    aiDatabase.projectPatterns.set(project.toLowerCase(), {
+                        name: project,
+                        invoiceCount: Math.floor(Math.random() * 50) + 10,
+                        totalValue: Math.floor(Math.random() * 100000) + 20000
+                    });
+                });
+            }
+            
+            updateStats();
+            populateDataLists();
+            updatePatternDisplay();
+        }
+        
+        // Save data (without localStorage in Claude environment)
+        function saveData() {
+            // In Claude environment, we'll just store in memory
+            // In a real environment, this would save to localStorage
+            try {
+                const dataToSave = {
+                    ...aiDatabase,
+                    subcontractors: Array.from(aiDatabase.subcontractors.entries()),
+                    itemPatterns: Array.from(aiDatabase.itemPatterns.entries()),
+                    pricePatterns: Array.from(aiDatabase.pricePatterns.entries()),
+                    projectPatterns: Array.from(aiDatabase.projectPatterns.entries())
+                };
+                // localStorage.setItem('aiInvoiceScanner', JSON.stringify(dataToSave));
+                console.log('Data saved to memory (localStorage not available in Claude environment)');
+            } catch (e) {
+                console.warn('Failed to save data:', e);
+            }
+        }
+        
+        function switchTab(tabName, clickedElement) {
+            console.log('Switching to tab: ' + tabName);
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(function(tab) {
+                tab.classList.remove('active');
+            });
+            
+            // Add active class to the clicked tab
+            if (clickedElement) {
+                clickedElement.classList.add('active');
+            } else if (window.event && window.event.target) {
+                window.event.target.classList.add('active');
+            } else {
+                // Fallback - find the tab that should be active
+                const tabs = document.querySelectorAll('.tab');
+                tabs.forEach(function(tab) {
+                    if (tab.onclick && tab.onclick.toString().indexOf(tabName) !== -1) {
+                        tab.classList.add('active');
+                    }
+                });
+            }
+            
+            // Hide all tab content
+            document.querySelectorAll('.tab-content').forEach(function(content) {
+                content.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            const targetTab = document.getElementById(tabName);
+            if (targetTab) {
+                targetTab.classList.add('active');
+            } else {
+                console.error('Tab content not found: ' + tabName);
+            }
+            
+            // Generate reports when switching to reports tab
+            if (tabName === 'reports') {
+                setTimeout(function() {
+                    try {
+                        generateReport();
+                    } catch (e) {
+                        console.error('Error generating report:', e);
+                    }
+                }, 100);
+            }
+        }
+        
+        function simulateQuickScan(type) {
+            console.log('Simulating ' + type + ' invoice scan...');
+            const fakeFile = { 
+                name: type + '_invoice_' + Date.now() + '.pdf', 
+                type: 'application/pdf',
+                size: 1024 * 500
+            };
+            processInvoice(fakeFile, type);
+        }
+        
+        function handleDragOver(e) {
+            e.preventDefault();
+            const zone = e.currentTarget;
+            if (zone) zone.classList.add('dragover');
+        }
+        
+        function handleDragLeave(e) {
+            e.preventDefault();
+            const zone = e.currentTarget;
+            if (zone) zone.classList.remove('dragover');
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            const zone = e.currentTarget;
+            zone.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                processFiles(files);
+            }
+        }
+        
+        function handleBatchDrop(e) {
+            e.preventDefault();
+            const zone = e.currentTarget;
+            zone.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                processBatchFiles(files);
+            }
+        }
+        
+        // Handle batch file input change
+        function handleBatchDragOver(e) {
+            e.preventDefault();
+            const zone = document.getElementById('batchUploadZone');
+            if (zone) zone.classList.add('dragover');
+        }
+        
+        function handleBatchDragLeave(e) {
+            e.preventDefault();
+            const zone = document.getElementById('batchUploadZone');
+            if (zone) zone.classList.remove('dragover');
+        }
+        
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            console.log(`Selected ${files.length} files`);
+            if (files.length > 0) {
+                processFiles(files);
+            }
+        }
+        
+        // Add batch file input handler
+        function handleBatchFileSelect(e) {
+            const files = e.target.files;
+            console.log(`Selected ${files.length} files for batch processing`);
+            if (files.length > 0) {
+                processBatchFiles(files);
+            }
+        }
+        
+        async function processFiles(files) {
+            for (let file of files) {
+                await processInvoice(file);
+            }
+        }
+        
+        async function processBatchFiles(files) {
+            const batchProgress = document.getElementById('batchProgress');
+            const batchResults = document.getElementById('batchResults');
+            const progressFill = document.getElementById('batchProgressFill');
+            const statusDiv = document.getElementById('batchStatus');
+            const resultsBody = document.getElementById('batchResultsBody');
+            
+            batchProgress.style.display = 'block';
+            batchResults.style.display = 'none';
+            resultsBody.innerHTML = '';
+            aiDatabase.batchResults = [];
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const progress = ((i + 1) / files.length) * 100;
+                
+                progressFill.style.width = progress + '%';
+                progressFill.textContent = Math.round(progress) + '%';
+                statusDiv.textContent = `Processing ${file.name} (${i + 1}/${files.length})`;
+                
+                try {
+                    const result = await processBatchInvoice(file);
+                    aiDatabase.batchResults.push(result);
+                    
+                    // Add to results table
+                    const row = resultsBody.insertRow();
+                    row.innerHTML = `
+                        <td>${file.name}</td>
+                        <td><span style="color: ${result.status === 'success' ? '#4CAF50' : '#f44336'};">${result.status}</span></td>
+                        <td>${result.subcontractor || '-'}</td>
+                        <td>${result.amount ? result.amount.toFixed(2) : '0.00'}</td>
+                        <td>${result.confidence ? Math.round(result.confidence * 100) + '%' : 'N/A'}</td>
+                        <td>
+                            <button class="btn btn-small" onclick="reviewInvoice('${result.id}')">Review</button>
+                            <button class="btn btn-small btn-success" onclick="approveInvoice('${result.id}')">Approve</button>
+                        </td>
+                    `;
+                } catch (error) {
+                    const errorResult = {
+                        id: Date.now() + Math.random(),
+                        filename: file.name,
+                        status: 'error',
+                        error: error.message
+                    };
+                    aiDatabase.batchResults.push(errorResult);
+                    
+                    const row = resultsBody.insertRow();
+                    row.innerHTML = `
+                        <td>${file.name}</td>
+                        <td><span style="color: #f44336;">Error</span></td>
+                        <td colspan="4">${error.message}</td>
+                    `;
+                }
+                
+                // Small delay to show progress
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            
+            batchProgress.style.display = 'none';
+            batchResults.style.display = 'block';
+            statusDiv.textContent = `Completed processing ${files.length} files`;
+        }
+        
+        function processBatchInvoice(file) {
+            // Simulate batch processing
+            var result = {
+                id: Date.now() + Math.random(),
+                filename: file.name,
+                status: 'success',
+                timestamp: new Date()
+            };
+            
+            // Simulate different invoice types based on filename
+            if (file.name.toLowerCase().indexOf('brett') !== -1 || file.name.toLowerCase().indexOf('paint') !== -1) {
+                result.subcontractor = 'Brett Davidson';
+                result.amount = 500 + Math.random() * 1000;
+                result.confidence = 0.9 + Math.random() * 0.09;
+                result.category = 'Painting';
+            } else if (file.name.toLowerCase().indexOf('youzhong') !== -1 || file.name.toLowerCase().indexOf('mixed') !== -1) {
+                result.subcontractor = 'Youzhong PTY LTD';
+                result.amount = 1000 + Math.random() * 2000;
+                result.confidence = 0.8 + Math.random() * 0.15;
+                result.category = 'Mixed';
+            } else {
+                // Random invoice
+                var contractors = ['ABC Building', 'XYZ Contractors', 'Quality Works Ltd'];
+                result.subcontractor = contractors[Math.floor(Math.random() * contractors.length)];
+                result.amount = 200 + Math.random() * 3000;
+                result.confidence = 0.6 + Math.random() * 0.3;
+                result.category = 'Various';
+            }
+            
+            return result;
+        }
+        
+        function simulateQuickScan(type) {
+            const fakeFile = { name: `${type}_invoice_${Date.now()}.pdf`, type: 'application/pdf' };
+            processInvoice(fakeFile, type);
+        }
+        
+        function processInvoice(file, quickType) {
+            console.log('Processing invoice:', file.name || 'Demo file');
+            var startTime = Date.now();
+            
+            // Show processing indicator
+            var indicator = document.getElementById('processingIndicator');
+            var progressFill = document.getElementById('progressFill');
+            var steps = document.getElementById('processingSteps');
+            var uploadZone = document.getElementById('uploadZone');
+            
+            if (!indicator || !progressFill || !steps || !uploadZone) {
+                console.error('Processing UI elements not found');
+                return;
+            }
+            
+            indicator.classList.add('active');
+            uploadZone.classList.add('processing');
+            
+            // Update AI badge
+            var aiBadge = document.getElementById('aiBadge');
+            var aiStatus = document.getElementById('aiStatus');
+            if (aiBadge && aiStatus) {
+                aiBadge.classList.add('learning');
+                aiStatus.textContent = 'Processing...';
+            }
+            
+            // Enhanced processing steps
+            var processingSteps = [
+                { progress: 15, text: '📄 Reading document structure...' },
+                { progress: 30, text: '🔍 Extracting text with OCR...' },
+                { progress: 45, text: '🧠 Running AI analysis...' },
+                { progress: 60, text: '🏷️ Identifying subcontractor...' },
+                { progress: 75, text: '📊 Categorizing line items...' },
+                { progress: 90, text: '💰 Calculating totals...' },
+                { progress: 100, text: '✅ Analysis complete!' }
+            ];
+            
+            var currentStep = 0;
+            
+            function processStep() {
+                if (currentStep >= processingSteps.length) {
+                    // Process the invoice
+                    simulateDataExtraction(file, quickType);
+                    
+                    // Record processing time
+                    var processingTime = Date.now() - startTime;
+                    aiDatabase.processingTimes.push(processingTime);
+                    
+                    // Hide processing indicator
+                    setTimeout(function() {
+                        indicator.classList.remove('active');
+                        uploadZone.classList.remove('processing');
+                        if (aiBadge && aiStatus) {
+                            aiBadge.classList.remove('learning');
+                            aiStatus.textContent = 'AI Ready';
+                        }
+                    }, 500);
+                    return;
+                }
+                
+                var step = processingSteps[currentStep];
+                progressFill.style.width = step.progress + '%';
+                progressFill.textContent = step.progress + '%';
+                steps.innerHTML = '<p>' + step.text + '</p>';
+                
+                currentStep++;
+                setTimeout(processStep, 300);
+            }
+            
+            processStep();
+        }
+        
+        function simulateDataExtraction(file, quickType) {
+            console.log('Simulating data extraction for:', quickType || 'auto-detect');
+            var extractedData = document.getElementById('extractedData');
+            if (!extractedData) {
+                console.error('Extracted data container not found');
+                return;
+            }
+            
+            extractedData.style.display = 'block';
+            
+            var invoiceData;
+            
+            // Determine invoice type
+            if (quickType === 'painting' || (file && file.name && (file.name.toLowerCase().indexOf('brett') !== -1 || file.name.toLowerCase().indexOf('paint') !== -1))) {
+                invoiceData = generatePaintingInvoice();
+            } else if (quickType === 'mixed' || (file && file.name && (file.name.toLowerCase().indexOf('youzhong') !== -1 || file.name.toLowerCase().indexOf('mixed') !== -1))) {
+                invoiceData = generateMixedInvoice();
+            } else if (quickType === 'variation') {
+                invoiceData = generateVariationInvoice();
+            } else {
+                // Randomly choose type
+                var types = ['painting', 'mixed', 'variation'];
+                var randomType = types[Math.floor(Math.random() * types.length)];
+                if (randomType === 'painting') {
+                    invoiceData = generatePaintingInvoice();
+                } else if (randomType === 'mixed') {
+                    invoiceData = generateMixedInvoice();
+                } else {
+                    invoiceData = generateVariationInvoice();
+                }
+            }
+            
+            // Populate form fields
+            populateExtractedData(invoiceData);
+            
+            // Update confidence badge
+            updateConfidenceBadge(invoiceData.confidence);
+            
+            // Update AI detection text
+            var aiDetection = document.getElementById('aiDetection');
+            if (aiDetection) {
+                aiDetection.textContent = invoiceData.aiDetection;
+            }
+            
+            // Populate line items
+            populateLineItems(invoiceData.lineItems);
+            
+            // Increment processed counter
+            aiDatabase.invoicesProcessed++;
+            aiDatabase.totalValueProcessed += invoiceData.total;
+            updateStats();
+            saveData();
+        }
+        
+        function generatePaintingInvoice() {
+            const contractors = Array.from(aiDatabase.subcontractors.values()).filter(s => s.category === 'Painting');
+            const contractor = contractors[Math.floor(Math.random() * contractors.length)] || {
+                name: 'Brett Davidson',
+                abn: '49481102558',
+                paymentTerms: '30'
+            };
+            
+            const projects = ['Stoddart Cladding', 'Victoria Point', 'Pallara Development'];
+            const project = projects[Math.floor(Math.random() * projects.length)];
+            
+            return {
+                invoiceNumber: String(Math.floor(Math.random() * 1000)).padStart(3, '0'),
+                date: new Date().toISOString().split('T')[0],
+                subcontractor: contractor.name,
+                abn: contractor.abn,
+                project: project,
+                paymentTerms: contractor.paymentTerms || '30',
+                confidence: 0.92,
+                aiDetection: `Standard painting invoice from ${contractor.name} (known subcontractor). High confidence in categorization.`,
+                lineItems: [
+                    { desc: `${project} - Prepaint work`, type: 'contract', amount: 500, confidence: 0.95 },
+                    { desc: 'Primer application', type: 'contract', amount: 400, confidence: 0.90 },
+                    { desc: 'Final coat painting', type: 'contract', amount: 600, confidence: 0.95 }
+                ],
+                total: 1500,
+                gst: 150
+            };
+        }
+        
+        function generateMixedInvoice() {
+            return {
+                invoiceNumber: String(Math.floor(Math.random() * 10000)).padStart(4, '0'),
+                date: new Date().toISOString().split('T')[0],
+                subcontractor: 'Youzhong PTY LTD',
+                abn: '91605132465',
+                project: 'Stoddart Cladding System',
+                paymentTerms: '14',
+                confidence: 0.84,
+                aiDetection: 'Mixed work invoice detected. Contains contract items, variations, and potential losses.',
+                lineItems: [
+                    { desc: 'Standard cladding installation', type: 'contract', amount: 1200, confidence: 0.85 },
+                    { desc: 'Additional height work - stairs', type: 'variation', amount: 400, chargeToBuilder: 450, confidence: 0.88 },
+                    { desc: 'Patch work in garage - 2 cut outs', type: 'variation', amount: 200, chargeToBuilder: 350, confidence: 0.90 },
+                    { desc: 'Emergency repairs - weekend work', type: 'loss', amount: 300, confidence: 0.75 }
+                ],
+                total: 2100,
+                gst: 210
+            };
+        }
+        
+        function generateVariationInvoice() {
+            return {
+                invoiceNumber: 'VAR-' + String(Math.floor(Math.random() * 1000)).padStart(3, '0'),
+                date: new Date().toISOString().split('T')[0],
+                subcontractor: 'Master Painters Co',
+                abn: '12345678901',
+                project: 'Redland Bay Project',
+                paymentTerms: '30',
+                confidence: 0.78,
+                aiDetection: 'Variation work invoice. Most items can be charged back to builder.',
+                lineItems: [
+                    { desc: 'Extra coats due to substrate issues', type: 'variation', amount: 350, chargeToBuilder: 400, confidence: 0.85 },
+                    { desc: 'Additional scaffolding required', type: 'variation', amount: 500, chargeToBuilder: 600, confidence: 0.90 },
+                    { desc: 'Touch up work - quality issues', type: 'variation', amount: 200, chargeToBuilder: 250, confidence: 0.80 },
+                    { desc: 'Weather delay - additional time', type: 'loss', amount: 150, confidence: 0.70 }
+                ],
+                total: 1200,
+                gst: 120
+            };
+        }
+        
+        function populateExtractedData(data) {
+            document.getElementById('extractedInvNumber').value = data.invoiceNumber;
+            document.getElementById('extractedDate').value = data.date;
+            document.getElementById('extractedSubcontractor').value = data.subcontractor;
+            document.getElementById('extractedABN').value = data.abn;
+            document.getElementById('extractedTotal').value = data.total.toFixed(2);
+            document.getElementById('extractedGST').value = data.gst.toFixed(2);
+            document.getElementById('extractedProject').value = data.project;
+            document.getElementById('extractedTerms').value = data.paymentTerms;
+        }
+        
+        function populateLineItems(items) {
+            const container = document.getElementById('lineItemsContainer');
+            container.innerHTML = '';
+            
+            items.forEach((item, index) => {
+                addLineItemToContainer(item, index);
+            });
+        }
+        
+        function addLineItemToContainer(item, index) {
+            const container = document.getElementById('lineItemsContainer');
+            const lineItemDiv = document.createElement('div');
+            lineItemDiv.className = 'line-item ai-suggested';
+            lineItemDiv.dataset.index = index;
+            
+            let typeColor = getTypeColor(item.type);
+            let typeLabel = getTypeLabel(item.type);
+            
+            lineItemDiv.innerHTML = `
+                <div class="line-item-header">
+                    <div class="line-item-title">
+                        Line Item ${index + 1}
+                        <span style="margin-left: 10px; padding: 4px 8px; background: ${typeColor}20; color: ${typeColor}; border-radius: 4px; font-size: 0.85em;">
+                            ${typeLabel} (${Math.round(item.confidence * 100)}% confidence)
+                        </span>
+                    </div>
+                    <div class="line-item-actions">
+                        <button class="feedback-btn" onclick="markCorrect(${index})" title="Mark as correct">✓</button>
+                        <button class="feedback-btn" onclick="markIncorrect(${index})" title="Mark as incorrect">✗</button>
+                    </div>
+                </div>
+                <div class="line-item-fields">
+                    <input type="text" value="${item.desc}" placeholder="Description" class="ai-filled" onchange="markFieldModified(this)">
+                    <select class="ai-filled" id="type_${index}" onchange="updateLineItemType(${index})">
+                        <option value="contract" ${item.type === 'contract' ? 'selected' : ''}>Contract</option>
+                        <option value="variation" ${item.type === 'variation' ? 'selected' : ''}>Variation</option>
+                        <option value="loss" ${item.type === 'loss' ? 'selected' : ''}>Loss</option>
+                    </select>
+                    <input type="number" value="${item.amount}" placeholder="Cost" step="0.01" class="ai-filled" onchange="updateTotals()">
+                    <input type="number" value="${item.chargeToBuilder || 0}" placeholder="Charge to Builder" step="0.01" class="ai-filled" ${item.type !== 'variation' ? 'disabled' : ''} onchange="updateTotals()">
+                    <input type="text" placeholder="Contract Item #" class="ai-filled" ${item.type !== 'contract' ? 'disabled' : ''}>
+                    <button class="btn btn-danger btn-small" onclick="removeLineItem(${index})" title="Remove item">×</button>
+                </div>
+            `;
+            
+            container.appendChild(lineItemDiv);
+        }
+        
+        function getTypeColor(type) {
+            switch(type) {
+                case 'contract': return '#2196F3';
+                case 'variation': return '#ff9800';
+                case 'loss': return '#f44336';
+                default: return '#666';
+            }
+        }
+        
+        function getTypeLabel(type) {
+            switch(type) {
+                case 'contract': return 'Contract Item';
+                case 'variation': return 'Variation/Extra';
+                case 'loss': return 'Unrecoverable Loss';
+                default: return 'Unknown';
+            }
+        }
+        
+        function addNewLineItem() {
+            const container = document.getElementById('lineItemsContainer');
+            const index = container.children.length;
+            const newItem = {
+                desc: '',
+                type: 'contract',
+                amount: 0,
+                confidence: 0.5
+            };
+            
+            addLineItemToContainer(newItem, index);
+        }
+        
+        function updateLineItemType(index) {
+            const select = document.getElementById(`type_${index}`);
+            const lineItem = select.closest('.line-item');
+            const fields = lineItem.querySelectorAll('.line-item-fields input');
+            
+            const type = select.value;
+            
+            // Enable/disable charge to builder field
+            fields[3].disabled = type !== 'variation';
+            if (type !== 'variation') {
+                fields[3].value = 0;
+            }
+            
+            // Enable/disable contract item field
+            fields[4].disabled = type !== 'contract';
+            if (type !== 'contract') {
+                fields[4].value = '';
+            }
+            
+            updateTotals();
+        }
+        
+        function updateTotals() {
+            const lineItems = document.querySelectorAll('.line-item');
+            let total = 0;
+            
+            lineItems.forEach(item => {
+                const amountInput = item.querySelector('input[placeholder="Cost"]');
+                if (amountInput && amountInput.value) {
+                    total += parseFloat(amountInput.value) || 0;
+                }
+            });
+            
+            const gst = total * 0.1;
+            document.getElementById('extractedTotal').value = (total + gst).toFixed(2);
+            document.getElementById('extractedGST').value = gst.toFixed(2);
+        }
+        
+        function markFieldModified(field) {
+            field.classList.remove('ai-filled');
+            field.classList.add('user-modified');
+        }
+        
+        function updateConfidenceBadge(confidence) {
+            const badge = document.getElementById('confidenceBadge');
+            if (confidence >= 0.85) {
+                badge.textContent = 'High Confidence';
+                badge.className = 'confidence-badge confidence-high';
+            } else if (confidence >= 0.70) {
+                badge.textContent = 'Medium Confidence';
+                badge.className = 'confidence-badge confidence-medium';
+            } else {
+                badge.textContent = 'Low Confidence';
+                badge.className = 'confidence-badge confidence-low';
+            }
+        }
+        
+        function markCorrect(index) {
+            const lineItems = document.querySelectorAll('.line-item');
+            if (lineItems[index]) {
+                lineItems[index].classList.remove('ai-suggested');
+                lineItems[index].classList.add('user-verified');
+                
+                // Learn from correct prediction
+                learnFromCorrection(index, true);
+                
+                aiDatabase.correctPredictions++;
+                aiDatabase.totalPredictions++;
+                updateStats();
+                saveData();
+            }
+        }
+        
+        function markIncorrect(index) {
+            const lineItems = document.querySelectorAll('.line-item');
+            if (lineItems[index]) {
+                lineItems[index].style.borderColor = '#f44336';
+                lineItems[index].style.backgroundColor = '#ffebee';
+                
+                // Learn from incorrect prediction
+                learnFromCorrection(index, false);
+                
+                aiDatabase.totalPredictions++;
+                updateStats();
+                saveData();
+            }
+        }
+        
+        function removeLineItem(index) {
+            const lineItems = document.querySelectorAll('.line-item');
+            if (lineItems[index]) {
+                lineItems[index].remove();
+                updateTotals();
+                // Re-index remaining items
+                reindexLineItems();
+            }
+        }
+        
+        function reindexLineItems() {
+            const lineItems = document.querySelectorAll('.line-item');
+            lineItems.forEach((item, newIndex) => {
+                item.dataset.index = newIndex;
+                // Update all references to the old index
+                const title = item.querySelector('.line-item-title');
+                title.childNodes[0].textContent = `Line Item ${newIndex + 1}`;
+                
+                // Update onclick handlers
+                const correctBtn = item.querySelector('.feedback-btn[title="Mark as correct"]');
+                const incorrectBtn = item.querySelector('.feedback-btn[title="Mark as incorrect"]');
+                const removeBtn = item.querySelector('.btn-danger');
+                
+                if (correctBtn) correctBtn.onclick = () => markCorrect(newIndex);
+                if (incorrectBtn) incorrectBtn.onclick = () => markIncorrect(newIndex);
+                if (removeBtn) removeBtn.onclick = () => removeLineItem(newIndex);
+                
+                // Update select and other IDs
+                const select = item.querySelector('select');
+                if (select) {
+                    select.id = `type_${newIndex}`;
+                    select.onchange = () => updateLineItemType(newIndex);
+                }
+            });
+        }
+        
+        function learnFromCorrection(index, isCorrect) {
+            const lineItems = document.querySelectorAll('.line-item');
+            const item = lineItems[index];
+            if (!item) return;
+            
+            const description = item.querySelector('input[type="text"]').value.toLowerCase();
+            const type = item.querySelector('select').value;
+            
+            // Extract keywords and update patterns
+            const keywords = description.split(' ').filter(word => word.length > 3);
+            keywords.forEach(keyword => {
+                const existing = aiDatabase.itemPatterns.get(keyword);
+                if (existing) {
+                    if (isCorrect) {
+                        existing.confidence = Math.min(0.99, existing.confidence + 0.02);
+                    } else {
+                        existing.confidence = Math.max(0.1, existing.confidence - 0.05);
+                    }
+                    existing.count++;
+                } else if (isCorrect) {
+                    aiDatabase.itemPatterns.set(keyword, {
+                        type: type,
+                        confidence: 0.6,
+                        count: 1
+                    });
+                }
+            });
+        }
+        
+        function provideFeedback(type) {
+            let message = '';
+            let points = 0;
+            
+            switch(type) {
+                case 'perfect':
+                    message = 'Excellent! The AI performed perfectly. This helps improve future accuracy.';
+                    points = 10;
+                    break;
+                case 'correct':
+                    message = 'Great! The AI was mostly accurate. It will continue learning from this pattern.';
+                    points = 5;
+                    break;
+                case 'needsWork':
+                    message = 'Thanks for the feedback. The AI will learn from your corrections to improve next time.';
+                    points = 1;
+                    break;
+            }
+            
+            // Show feedback
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success';
+            alert.innerHTML = `<strong>Feedback Received:</strong> ${message}`;
+            document.getElementById('extractedData').insertBefore(alert, document.getElementById('extractedData').firstChild);
+            
+            setTimeout(() => alert.remove(), 5000);
+            
+            // Update learning metrics
+            aiDatabase.correctPredictions += points;
+            aiDatabase.totalPredictions += 10;
+            updateStats();
+            saveData();
+        }
+        
+        function trainOnCorrections() {
+            // Learn from all current corrections
+            const subcontractor = document.getElementById('extractedSubcontractor').value;
+            const abn = document.getElementById('extractedABN').value;
+            const project = document.getElementById('extractedProject').value;
+            
+            // Learn subcontractor pattern
+            if (subcontractor && abn) {
+                const key = subcontractor.toLowerCase();
+                const existing = aiDatabase.subcontractors.get(key);
+                if (existing) {
+                    existing.invoiceCount++;
+                    existing.confidence = Math.min(0.99, existing.confidence + 0.02);
+                } else {
+                    aiDatabase.subcontractors.set(key, {
+                        name: subcontractor,
+                        abn: abn,
+                        confidence: 0.8,
+                        invoiceCount: 1,
+                        category: 'Various'
+                    });
+                }
+            }
+            
+            // Learn project pattern
+            if (project) {
+                const key = project.toLowerCase();
+                const existing = aiDatabase.projectPatterns.get(key);
+                if (existing) {
+                    existing.invoiceCount++;
+                } else {
+                    aiDatabase.projectPatterns.set(key, {
+                        name: project,
+                        invoiceCount: 1,
+                        totalValue: 0
+                    });
+                }
+            }
+            
+            // Learn from line item corrections
+            const lineItems = document.querySelectorAll('.line-item');
+            lineItems.forEach((item, index) => {
+                learnFromCorrection(index, true);
+            });
+            
+            // Show success message
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success';
+            alert.innerHTML = '<strong>Training Complete!</strong> AI has learned from your corrections and will be more accurate on similar invoices.';
+            document.getElementById('extractedData').insertBefore(alert, document.getElementById('extractedData').firstChild);
+            
+            setTimeout(() => alert.remove(), 5000);
+            
+            updateStats();
+            updatePatternDisplay();
+            saveData();
+        }
+        
+        function confirmAndSave() {
+            // Collect invoice data
+            const invoiceData = {
+                id: Date.now(),
+                invoiceNumber: document.getElementById('extractedInvNumber').value,
+                date: document.getElementById('extractedDate').value,
+                subcontractor: document.getElementById('extractedSubcontractor').value,
+                abn: document.getElementById('extractedABN').value,
+                total: parseFloat(document.getElementById('extractedTotal').value),
+                gst: parseFloat(document.getElementById('extractedGST').value),
+                project: document.getElementById('extractedProject').value,
+                paymentTerms: document.getElementById('extractedTerms').value,
+                lineItems: [],
+                timestamp: new Date(),
+                aiAccuracy: calculateCurrentAccuracy(),
+                processingTime: aiDatabase.processingTimes[aiDatabase.processingTimes.length - 1] || 2000
+            };
+            
+            // Collect line items
+            const lineItems = document.querySelectorAll('.line-item');
+            lineItems.forEach(item => {
+                const inputs = item.querySelectorAll('input, select');
+                invoiceData.lineItems.push({
+                    description: inputs[0].value,
+                    type: inputs[1].value,
+                    amount: parseFloat(inputs[2].value) || 0,
+                    chargeToBuilder: parseFloat(inputs[3].value) || 0,
+                    contractItem: inputs[4].value || ''
+                });
+            });
+            
+            // Add to history
+            aiDatabase.processingHistory.unshift(invoiceData);
+            
+            // Keep only last 100 records to prevent memory issues
+            if (aiDatabase.processingHistory.length > 100) {
+                aiDatabase.processingHistory = aiDatabase.processingHistory.slice(0, 100);
+            }
+            
+            // Update totals
+            aiDatabase.totalValueProcessed += invoiceData.total;
+            
+            // Show success message
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success';
+            alert.innerHTML = `<strong>Invoice Saved!</strong> Invoice ${invoiceData.invoiceNumber} for ${invoiceData.total.toFixed(2)} has been processed and saved.`;
+            document.querySelector('.main-content').insertBefore(alert, document.querySelector('.main-content').firstChild);
+            
+            setTimeout(() => alert.remove(), 5000);
+            
+            // Update displays
+            updateStats();
+            updateHistoryTable();
+            populateDataLists();
+            saveData();
+            
+            // Clear form
+            clearExtractedData();
+        }
+        
+        function calculateCurrentAccuracy() {
+            const verifiedItems = document.querySelectorAll('.line-item.user-verified').length;
+            const totalItems = document.querySelectorAll('.line-item').length;
+            const modifiedFields = document.querySelectorAll('.user-modified').length;
+            const totalFields = document.querySelectorAll('.ai-filled, .user-modified').length;
+            
+            if (totalItems === 0 || totalFields === 0) return 0.85;
+            
+            const itemAccuracy = verifiedItems / totalItems;
+            const fieldAccuracy = (totalFields - modifiedFields) / totalFields;
+            
+            return (itemAccuracy + fieldAccuracy) / 2;
+        }
+        
+        function clearExtractedData() {
+            document.getElementById('extractedData').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+            
+            // Clear all fields
+            const fields = ['extractedInvNumber', 'extractedDate', 'extractedSubcontractor', 'extractedABN', 'extractedTotal', 'extractedGST', 'extractedProject'];
+            fields.forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            
+            document.getElementById('extractedTerms').selectedIndex = 0;
+            document.getElementById('lineItemsContainer').innerHTML = '';
+        }
+        
+        function exportToCSV() {
+            const invoiceData = collectCurrentInvoiceData();
+            const csvContent = generateCSV([invoiceData]);
+            downloadFile('invoice_export.csv', csvContent, 'text/csv');
+        }
+        
+        function collectCurrentInvoiceData() {
+            const data = {
+                invoiceNumber: document.getElementById('extractedInvNumber').value,
+                date: document.getElementById('extractedDate').value,
+                subcontractor: document.getElementById('extractedSubcontractor').value,
+                abn: document.getElementById('extractedABN').value,
+                total: document.getElementById('extractedTotal').value,
+                project: document.getElementById('extractedProject').value,
+                lineItems: []
+            };
+            
+            document.querySelectorAll('.line-item').forEach(item => {
+                const inputs = item.querySelectorAll('input, select');
+                data.lineItems.push({
+                    description: inputs[0].value,
+                    type: inputs[1].value,
+                    amount: inputs[2].value,
+                    chargeToBuilder: inputs[3].value || '0'
+                });
+            });
+            
+            return data;
+        }
+        
+        function generateCSV(invoices) {
+            const headers = ['Invoice Number', 'Date', 'Subcontractor', 'ABN', 'Project', 'Item Description', 'Category', 'Amount', 'Charge to Builder', 'Total'];
+            let csv = headers.join(',') + '\n';
+            
+            invoices.forEach(invoice => {
+                if (invoice.lineItems && invoice.lineItems.length > 0) {
+                    invoice.lineItems.forEach(item => {
+                        const row = [
+                            `"${invoice.invoiceNumber}"`,
+                            invoice.date,
+                            `"${invoice.subcontractor}"`,
+                            invoice.abn,
+                            `"${invoice.project}"`,
+                            `"${item.description}"`,
+                            item.type,
+                            item.amount,
+                            item.chargeToBuilder || '0',
+                            invoice.total
+                        ];
+                        csv += row.join(',') + '\n';
+                    });
+                } else {
+                    const row = [
+                        `"${invoice.invoiceNumber}"`,
+                        invoice.date,
+                        `"${invoice.subcontractor}"`,
+                        invoice.abn,
+                        `"${invoice.project}"`,
+                        '',
+                        '',
+                        '',
+                        '',
+                        invoice.total
+                    ];
+                    csv += row.join(',') + '\n';
+                }
+            });
+            
+            return csv;
+        }
+        
+        function downloadFile(filename, content, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+        
+        function updateStats() {
+            document.getElementById('invoicesProcessed').textContent = aiDatabase.invoicesProcessed;
+            
+            const accuracy = aiDatabase.totalPredictions > 0 
+                ? Math.round((aiDatabase.correctPredictions / aiDatabase.totalPredictions) * 100)
+                : 0;
+            document.getElementById('accuracyRate').textContent = accuracy + '%';
+            
+            // Calculate time saved (estimate 8 minutes per manual invoice)
+            const timeSaved = Math.round(aiDatabase.invoicesProcessed * 8 / 60 * 10) / 10;
+            document.getElementById('timeSaved').textContent = timeSaved + 'h';
+            
+            document.getElementById('knownSubbies').textContent = aiDatabase.subcontractors.size;
+            
+            // Format total value
+            const totalValue = aiDatabase.totalValueProcessed;
+            document.getElementById('totalValue').textContent = '
+                 + (totalValue >= 1000000 
+                ? (totalValue / 1000000).toFixed(1) + 'M'
+                : totalValue >= 1000 
+                ? (totalValue / 1000).toFixed(0) + 'K'
+                : totalValue.toFixed(0));
+            
+            // Update additional stats in reports tab
+            updateReportStats();
+        }
+        
+        function updateReportStats() {
+            // Calculate monthly volume
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            
+            const monthlyInvoices = aiDatabase.processingHistory.filter(inv => 
+                new Date(inv.timestamp) > thirtyDaysAgo
+            );
+            
+            const monthlyVolume = monthlyInvoices.reduce((sum, inv) => sum + inv.total, 0);
+            document.getElementById('monthlyVolume').textContent = '
+                 + monthlyVolume.toFixed(0);
+            
+            // Average processing time
+            const avgTime = aiDatabase.processingTimes.length > 0
+                ? aiDatabase.processingTimes.reduce((sum, time) => sum + time, 0) / aiDatabase.processingTimes.length / 1000
+                : 0;
+            document.getElementById('avgProcessingTime').textContent = avgTime.toFixed(1) + 's';
+            
+            // Top subcontractor
+            const subcontractorTotals = new Map();
+            aiDatabase.processingHistory.forEach(inv => {
+                const current = subcontractorTotals.get(inv.subcontractor) || 0;
+                subcontractorTotals.set(inv.subcontractor, current + inv.total);
+            });
+            
+            let topSubcontractor = '-';
+            let maxTotal = 0;
+            subcontractorTotals.forEach((total, name) => {
+                if (total > maxTotal) {
+                    maxTotal = total;
+                    topSubcontractor = name;
+                }
+            });
+            document.getElementById('topSubcontractor').textContent = topSubcontractor;
+            
+            // Error rate
+            const errorRate = aiDatabase.totalPredictions > 0
+                ? Math.round(((aiDatabase.totalPredictions - aiDatabase.correctPredictions) / aiDatabase.totalPredictions) * 100)
+                : 0;
+            document.getElementById('errorRate').textContent = errorRate + '%';
+        }
+        
+        function populateDataLists() {
+            // Populate subcontractors
+            const subsList = document.getElementById('knownSubbiesList');
+            subsList.innerHTML = '';
+            aiDatabase.subcontractors.forEach(sub => {
+                const option = document.createElement('option');
+                option.value = sub.name;
+                subsList.appendChild(option);
+            });
+            
+            // Populate projects
+            const projectsList = document.getElementById('knownProjectsList');
+            projectsList.innerHTML = '';
+            aiDatabase.projectPatterns.forEach(project => {
+                const option = document.createElement('option');
+                option.value = project.name;
+                projectsList.appendChild(option);
+            });
+        }
+        
+        function updatePatternDisplay() {
+            // Update subcontractor patterns
+            const subPatterns = document.getElementById('subcontractorPatterns');
+            subPatterns.innerHTML = '';
+            
+            Array.from(aiDatabase.subcontractors.entries())
+                .sort((a, b) => (b[1].invoiceCount || 0) - (a[1].invoiceCount || 0))
+                .slice(0, 10)
+                .forEach(([key, value]) => {
+                    const div = document.createElement('div');
+                    div.className = 'pattern-item';
+                    div.innerHTML = `
+                        <div>
+                            <strong>${value.name}</strong> - ${value.category || 'Various'}
+                            <div style="font-size: 0.8em; color: #666;">ABN: ${value.abn}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div>${value.invoiceCount || 1} invoices</div>
+                            <div style="font-size: 0.8em; color: #666;">${Math.round(value.confidence * 100)}% confidence</div>
+                        </div>
+                    `;
+                    subPatterns.appendChild(div);
+                });
+            
+            // Update item patterns
+            const itemPatterns = document.getElementById('itemPatterns');
+            itemPatterns.innerHTML = '';
+            
+            Array.from(aiDatabase.itemPatterns.entries())
+                .sort((a, b) => b[1].confidence - a[1].confidence)
+                .slice(0, 8)
+                .forEach(([keyword, data]) => {
+                    const div = document.createElement('div');
+                    div.className = 'pattern-item';
+                    let typeLabel = getTypeLabel(data.type);
+                    div.innerHTML = `
+                        <div>
+                            <strong>"${keyword}"</strong>
+                            <div style="font-size: 0.8em; color: #666;">Found in ${data.count || 1} items</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div>${typeLabel}</div>
+                            <div style="font-size: 0.8em; color: #666;">${Math.round(data.confidence * 100)}% confidence</div>
+                        </div>
+                    `;
+                    itemPatterns.appendChild(div);
+                });
+            
+            // Update price patterns
+            const pricePatterns = document.getElementById('pricePatterns');
+            pricePatterns.innerHTML = '';
+            
+            const priceData = [
+                { item: 'Prepaint work', range: '$450-$650', avg: '$550' },
+                { item: 'Patch/repair work', range: '$150-$300', avg: '$220' },
+                { item: 'Additional height', range: '$200-$500', avg: '$350' },
+                { item: 'Emergency/weekend', range: '$300-$800', avg: '$550' }
+            ];
+            
+            priceData.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'pattern-item';
+                div.innerHTML = `
+                    <div><strong>${item.item}</strong></div>
+                    <div style="text-align: right;">
+                        <div>Range: ${item.range}</div>
+                        <div style="font-size: 0.8em; color: #666;">Avg: ${item.avg}</div>
+                    </div>
+                `;
+                pricePatterns.appendChild(div);
+            });
+        }
+        
+        function updateHistoryTable() {
+            const tbody = document.getElementById('historyTableBody');
+            tbody.innerHTML = '';
+            
+            aiDatabase.processingHistory.slice(0, 20).forEach(invoice => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td style="padding: 12px;">${new Date(invoice.timestamp).toLocaleDateString()}</td>
+                    <td style="padding: 12px;">${invoice.invoiceNumber}</td>
+                    <td style="padding: 12px;">${invoice.subcontractor}</td>
+                    <td style="padding: 12px;">${invoice.project}</td>
+                    <td style="padding: 12px;">${invoice.total.toFixed(2)}</td>
+                    <td style="padding: 12px;">
+                        <span style="color: ${invoice.aiAccuracy > 0.85 ? '#4CAF50' : invoice.aiAccuracy > 0.70 ? '#ff9800' : '#f44336'};">
+                            ${Math.round(invoice.aiAccuracy * 100)}%
+                        </span>
+                    </td>
+                    <td style="padding: 12px;">${(invoice.processingTime / 1000).toFixed(1)}s</td>
+                    <td style="padding: 12px;">
+                        <button class="btn btn-small" onclick="viewInvoice('${invoice.id}')">View</button>
+                        <button class="btn btn-small btn-warning" onclick="editInvoice('${invoice.id}')">Edit</button>
+                    </td>
+                `;
+            });
+        }
+        
+        function filterHistory(period) {
+            const now = new Date();
+            let filtered = aiDatabase.processingHistory;
+            
+            switch(period) {
+                case 'today':
+                    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    filtered = aiDatabase.processingHistory.filter(inv => new Date(inv.timestamp) >= today);
+                    break;
+                case 'week':
+                    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    filtered = aiDatabase.processingHistory.filter(inv => new Date(inv.timestamp) >= weekAgo);
+                    break;
+                case 'month':
+                    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                    filtered = aiDatabase.processingHistory.filter(inv => new Date(inv.timestamp) >= monthAgo);
+                    break;
+            }
+            
+            // Update table with filtered data
+            const tbody = document.getElementById('historyTableBody');
+            tbody.innerHTML = '';
+            
+            filtered.slice(0, 20).forEach(invoice => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td style="padding: 12px;">${new Date(invoice.timestamp).toLocaleDateString()}</td>
+                    <td style="padding: 12px;">${invoice.invoiceNumber}</td>
+                    <td style="padding: 12px;">${invoice.subcontractor}</td>
+                    <td style="padding: 12px;">${invoice.project}</td>
+                    <td style="padding: 12px;">${invoice.total.toFixed(2)}</td>
+                    <td style="padding: 12px;">
+                        <span style="color: ${invoice.aiAccuracy > 0.85 ? '#4CAF50' : invoice.aiAccuracy > 0.70 ? '#ff9800' : '#f44336'};">
+                            ${Math.round(invoice.aiAccuracy * 100)}%
+                        </span>
+                    </td>
+                    <td style="padding: 12px;">${(invoice.processingTime / 1000).toFixed(1)}s</td>
+                    <td style="padding: 12px;">
+                        <button class="btn btn-small" onclick="viewInvoice('${invoice.id}')">View</button>
+                    </td>
+                `;
+            });
+        }
+        
+        function searchHistory() {
+            const query = document.getElementById('historySearch').value.toLowerCase();
+            const tbody = document.getElementById('historyTableBody');
+            
+            const filtered = aiDatabase.processingHistory.filter(invoice => 
+                invoice.invoiceNumber.toLowerCase().includes(query) ||
+                invoice.subcontractor.toLowerCase().includes(query) ||
+                invoice.project.toLowerCase().includes(query)
+            );
+            
+            tbody.innerHTML = '';
+            filtered.slice(0, 20).forEach(invoice => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td style="padding: 12px;">${new Date(invoice.timestamp).toLocaleDateString()}</td>
+                    <td style="padding: 12px;">${invoice.invoiceNumber}</td>
+                    <td style="padding: 12px;">${invoice.subcontractor}</td>
+                    <td style="padding: 12px;">${invoice.project}</td>
+                    <td style="padding: 12px;">${invoice.total.toFixed(2)}</td>
+                    <td style="padding: 12px;">
+                        <span style="color: ${invoice.aiAccuracy > 0.85 ? '#4CAF50' : invoice.aiAccuracy > 0.70 ? '#ff9800' : '#f44336'};">
+                            ${Math.round(invoice.aiAccuracy * 100)}%
+                        </span>
+                    </td>
+                    <td style="padding: 12px;">${(invoice.processingTime / 1000).toFixed(1)}s</td>
+                    <td style="padding: 12px;">
+                        <button class="btn btn-small" onclick="viewInvoice('${invoice.id}')">View</button>
+                    </td>
+                `;
+            });
+        }
+        
+        function generateReport() {
+            console.log('Generating report...');
+            
+            try {
+                const reportTypeElement = document.getElementById('reportType');
+                const dateRangeElement = document.getElementById('dateRange');
+                const reportType = reportTypeElement ? reportTypeElement.value : 'summary';
+                const dateRangeValue = dateRangeElement ? dateRangeElement.value : '30';
+                const dateRange = parseInt(dateRangeValue);
+                const container = document.getElementById('reportContainer');
+                
+                if (!container) {
+                    console.error('Report container not found');
+                    return;
+                }
+                
+                // Filter data by date range
+                var filteredData = aiDatabase.processingHistory || [];
+                if (dateRange !== 'all' && !isNaN(dateRange)) {
+                    const cutoffDate = new Date();
+                    cutoffDate.setDate(cutoffDate.getDate() - dateRange);
+                    filteredData = filteredData.filter(function(inv) {
+                        return new Date(inv.timestamp) >= cutoffDate;
+                    });
+                }
+                
+                switch(reportType) {
+                    case 'summary':
+                        generateSummaryReport(container, filteredData);
+                        break;
+                    case 'subcontractor':
+                        generateSubcontractorReport(container, filteredData);
+                        break;
+                    case 'project':
+                        generateProjectReport(container, filteredData);
+                        break;
+                    case 'category':
+                        generateCategoryReport(container, filteredData);
+                        break;
+                    case 'timeline':
+                        generateTimelineReport(container, filteredData);
+                        break;
+                    default:
+                        generateSummaryReport(container, filteredData);
+                }
+            } catch (error) {
+                console.error('Error in generateReport:', error);
+                const container = document.getElementById('reportContainer');
+                if (container) {
+                    container.innerHTML = '<div class="alert alert-error"><strong>Error generating report:</strong> ' + error.message + '</div>';
+                }
+            }
+        }
+        
+        function generateSummaryReport(container, data) {
+            const totalInvoices = data.length;
+            const totalValue = data.reduce((sum, inv) => sum + inv.total, 0);
+            const avgValue = totalInvoices > 0 ? totalValue / totalInvoices : 0;
+            const avgAccuracy = totalInvoices > 0 
+                ? data.reduce((sum, inv) => sum + inv.aiAccuracy, 0) / totalInvoices 
+                : 0;
+            
+            container.innerHTML = `
+                <div class="extracted-data">
+                    <h3>Summary Report</h3>
+                    <div class="stats-container">
+                        <div class="stat-card">
+                            <div class="stat-value">${totalInvoices}</div>
+                            <div class="stat-label">Total Invoices</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${totalValue.toFixed(0)}</div>
+                            <div class="stat-label">Total Value</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${avgValue.toFixed(0)}</div>
+                            <div class="stat-label">Average Invoice</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${Math.round(avgAccuracy * 100)}%</div>
+                            <div class="stat-label">AI Accuracy</div>
+                        </div>
+                    </div>
+                    <div class="alert alert-success">
+                        <strong>Performance Summary:</strong> Processing ${totalInvoices} invoices with an average AI accuracy of ${Math.round(avgAccuracy * 100)}%. 
+                        Total value processed: ${totalValue.toFixed(2)}.
+                    </div>
+                </div>
+            `;
+        }
+        
+        function generateSubcontractorReport(container, data) {
+            const subcontractorTotals = new Map();
+            const subcontractorCounts = new Map();
+            
+            data.forEach(invoice => {
+                const name = invoice.subcontractor;
+                subcontractorTotals.set(name, (subcontractorTotals.get(name) || 0) + invoice.total);
+                subcontractorCounts.set(name, (subcontractorCounts.get(name) || 0) + 1);
+            });
+            
+            const sorted = Array.from(subcontractorTotals.entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+            
+            let tableRows = '';
+            sorted.forEach(([name, total]) => {
+                const count = subcontractorCounts.get(name);
+                const avg = total / count;
+                tableRows += `
+                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${name}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${count}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${total.toFixed(2)}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${avg.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+            
+            container.innerHTML = `
+                <div class="extracted-data">
+                    <h3>Subcontractor Analysis</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f5f5f5;">
+                                <th style="padding: 12px; text-align: left;">Subcontractor</th>
+                                <th style="padding: 12px; text-align: left;">Invoices</th>
+                                <th style="padding: 12px; text-align: left;">Total Value</th>
+                                <th style="padding: 12px; text-align: left;">Average</th>
+                            </tr>
+                        </thead>
+                        <tbody>${tableRows}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        function generateProjectReport(container, data) {
+            const projectTotals = new Map();
+            const projectCounts = new Map();
+            
+            data.forEach(invoice => {
+                const name = invoice.project;
+                projectTotals.set(name, (projectTotals.get(name) || 0) + invoice.total);
+                projectCounts.set(name, (projectCounts.get(name) || 0) + 1);
+            });
+            
+            const sorted = Array.from(projectTotals.entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+            
+            let tableRows = '';
+            sorted.forEach(([name, total]) => {
+                const count = projectCounts.get(name);
+                const avg = total / count;
+                tableRows += `
+                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${name}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${count}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${total.toFixed(2)}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${avg.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+            
+            container.innerHTML = `
+                <div class="extracted-data">
+                    <h3>Project Breakdown</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f5f5f5;">
+                                <th style="padding: 12px; text-align: left;">Project</th>
+                                <th style="padding: 12px; text-align: left;">Invoices</th>
+                                <th style="padding: 12px; text-align: left;">Total Value</th>
+                                <th style="padding: 12px; text-align: left;">Average</th>
+                            </tr>
+                        </thead>
+                        <tbody>${tableRows}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        function generateCategoryReport(container, data) {
+            const categoryTotals = new Map();
+            const categoryCounts = new Map();
+            
+            data.forEach(invoice => {
+                if (invoice.lineItems) {
+                    invoice.lineItems.forEach(item => {
+                        const type = item.type;
+                        categoryTotals.set(type, (categoryTotals.get(type) || 0) + item.amount);
+                        categoryCounts.set(type, (categoryCounts.get(type) || 0) + 1);
+                    });
+                }
+            });
+            
+            let tableRows = '';
+            ['contract', 'variation', 'loss'].forEach(type => {
+                const total = categoryTotals.get(type) || 0;
+                const count = categoryCounts.get(type) || 0;
+                const avg = count > 0 ? total / count : 0;
+                const label = getTypeLabel(type);
+                
+                tableRows += `
+                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${label}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${count}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${total.toFixed(2)}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${avg.toFixed(2)}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">
+                            <div style="width: 100px; height: 20px; background: #e0e0e0; border-radius: 10px; overflow: hidden;">
+                                <div style="width: ${Math.min(100, (total / Math.max(...categoryTotals.values())) * 100)}%; height: 100%; background: ${getTypeColor(type)};"></div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            const totalAmount = Array.from(categoryTotals.values()).reduce((sum, val) => sum + val, 0);
+            const contractAmount = categoryTotals.get('contract') || 0;
+            const variationAmount = categoryTotals.get('variation') || 0;
+            const lossAmount = categoryTotals.get('loss') || 0;
+            
+            container.innerHTML = `
+                <div class="extracted-data">
+                    <h3>Work Category Analysis</h3>
+                    
+                    <div class="stats-container">
+                        <div class="stat-card">
+                            <div class="stat-value">${Math.round((contractAmount/totalAmount) * 100) || 0}%</div>
+                            <div class="stat-label">Contract Work</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${Math.round((variationAmount/totalAmount) * 100) || 0}%</div>
+                            <div class="stat-label">Variations</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${Math.round((lossAmount/totalAmount) * 100) || 0}%</div>
+                            <div class="stat-label">Losses</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${variationAmount.toFixed(0)}</div>
+                            <div class="stat-label">Recoverable Amount</div>
+                        </div>
+                    </div>
+                    
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                        <thead>
+                            <tr style="background: #f5f5f5;">
+                                <th style="padding: 12px; text-align: left;">Category</th>
+                                <th style="padding: 12px; text-align: left;">Count</th>
+                                <th style="padding: 12px; text-align: left;">Total Value</th>
+                                <th style="padding: 12px; text-align: left;">Average</th>
+                                <th style="padding: 12px; text-align: left;">Distribution</th>
+                            </tr>
+                        </thead>
+                        <tbody>${tableRows}</tbody>
+                    </table>
+                    
+                    <div class="alert alert-warning" style="margin-top: 20px;">
+                        <strong>Cost Recovery Opportunity:</strong> ${variationAmount.toFixed(2)} in variation work can potentially be charged back to builders.
+                        Loss amount of ${lossAmount.toFixed(2)} represents unrecoverable costs.
+                    </div>
+                </div>
+            `;
+        }
+        
+        function generateTimelineReport(container, data) {
+            // Group by month
+            const monthlyData = new Map();
+            
+            data.forEach(invoice => {
+                const date = new Date(invoice.timestamp);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                
+                if (!monthlyData.has(monthKey)) {
+                    monthlyData.set(monthKey, { count: 0, total: 0, accuracy: [] });
+                }
+                
+                const monthData = monthlyData.get(monthKey);
+                monthData.count++;
+                monthData.total += invoice.total;
+                monthData.accuracy.push(invoice.aiAccuracy);
+            });
+            
+            let tableRows = '';
+            Array.from(monthlyData.entries())
+                .sort((a, b) => b[0].localeCompare(a[0]))
+                .slice(0, 12)
+                .forEach(([monthKey, data]) => {
+                    const avgAccuracy = data.accuracy.reduce((sum, acc) => sum + acc, 0) / data.accuracy.length;
+                    const [year, month] = monthKey.split('-');
+                    const monthName = new Date(year, month - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                    
+                    tableRows += `
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #eee;">${monthName}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #eee;">${data.count}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #eee;">${data.total.toFixed(2)}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #eee;">${(data.total / data.count).toFixed(2)}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #eee;">${Math.round(avgAccuracy * 100)}%</td>
+                        </tr>
+                    `;
+                });
+            
+            container.innerHTML = `
+                <div class="extracted-data">
+                    <h3>Timeline Analysis</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f5f5f5;">
+                                <th style="padding: 12px; text-align: left;">Month</th>
+                                <th style="padding: 12px; text-align: left;">Invoices</th>
+                                <th style="padding: 12px; text-align: left;">Total Value</th>
+                                <th style="padding: 12px; text-align: left;">Average</th>
+                                <th style="padding: 12px; text-align: left;">AI Accuracy</th>
+                            </tr>
+                        </thead>
+                        <tbody>${tableRows}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        function exportBatchResults() {
+            if (aiDatabase.batchResults.length === 0) {
+                alert('No batch results to export.');
+                return;
+            }
+            
+            const headers = ['Filename', 'Status', 'Subcontractor', 'Amount', 'Confidence', 'Category', 'Timestamp'];
+            let csv = headers.join(',') + '\n';
+            
+            aiDatabase.batchResults.forEach(result => {
+                const row = [
+                    `"${result.filename}"`,
+                    result.status,
+                    `"${result.subcontractor || ''}"`,
+                    result.amount || 0,
+                    result.confidence ? Math.round(result.confidence * 100) + '%' : 'N/A',
+                    result.category || '',
+                    new Date(result.timestamp).toLocaleString()
+                ];
+                csv += row.join(',') + '\n';
+            });
+            
+            downloadFile(`batch_results_${new Date().toISOString().split('T')[0]}.csv`, csv, 'text/csv');
+        }
+        
+        function reviewLowConfidence() {
+            const lowConfidence = aiDatabase.batchResults.filter(result => 
+                result.confidence && result.confidence < 0.7
+            );
+            
+            if (lowConfidence.length === 0) {
+                alert('No low confidence results found. All batch items processed with good accuracy!');
+                return;
+            }
+            
+            alert(`Found ${lowConfidence.length} items with low confidence that may need manual review.`);
+            
+            // Highlight low confidence rows
+            const rows = document.querySelectorAll('#batchResultsBody tr');
+            rows.forEach((row, index) => {
+                const result = aiDatabase.batchResults[index];
+                if (result && result.confidence && result.confidence < 0.7) {
+                    row.style.backgroundColor = '#fff3e0';
+                    row.style.borderLeft = '4px solid #ff9800';
+                }
+            });
+        }
+        
+        function clearBatchResults() {
+            aiDatabase.batchResults = [];
+            document.getElementById('batchResults').style.display = 'none';
+            document.getElementById('batchResultsBody').innerHTML = '';
+            document.getElementById('batchFileInput').value = '';
+        }
+        
+        function approveInvoice(resultId) {
+            const result = aiDatabase.batchResults.find(r => r.id == resultId);
+            if (result) {
+                result.status = 'approved';
+                
+                // Add to processing history
+                const invoiceData = {
+                    id: Date.now(),
+                    invoiceNumber: `BATCH-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
+                    date: new Date().toISOString().split('T')[0],
+                    subcontractor: result.subcontractor,
+                    total: result.amount,
+                    project: 'Batch Processed',
+                    timestamp: new Date(),
+                    aiAccuracy: result.confidence,
+                    processingTime: 1500
+                };
+                
+                aiDatabase.processingHistory.unshift(invoiceData);
+                aiDatabase.totalValueProcessed += result.amount;
+                
+                // Update UI
+                const rows = document.querySelectorAll('#batchResultsBody tr');
+                rows.forEach(row => {
+                    if (row.cells[0].textContent === result.filename) {
+                        row.cells[1].innerHTML = '<span style="color: #4CAF50;">Approved</span>';
+                        const actionCell = row.cells[5];
+                        actionCell.innerHTML = '<span style="color: #4CAF50;">✓ Approved</span>';
+                    }
+                });
+                
+                updateStats();
+                saveData();
+            }
+        }
+        
+        function reviewInvoice(resultId) {
+            const result = aiDatabase.batchResults.find(r => r.id == resultId);
+            if (result) {
+                alert(`Review ${result.filename}:\n\nSubcontractor: ${result.subcontractor}\nAmount: ${result.amount?.toFixed(2)}\nConfidence: ${Math.round((result.confidence || 0) * 100)}%\n\nStatus: ${result.status}`);
+            }
+        }
+        
+        function viewInvoice(invoiceId) {
+            const invoice = aiDatabase.processingHistory.find(inv => inv.id == invoiceId);
+            if (invoice) {
+                let lineItemsText = '';
+                if (invoice.lineItems) {
+                    lineItemsText = invoice.lineItems.map(item => 
+                        `• ${item.description} (${getTypeLabel(item.type)}): ${item.amount}`
+                    ).join('\n');
+                }
+                
+                alert(`Invoice Details:\n\nNumber: ${invoice.invoiceNumber}\nDate: ${invoice.date}\nSubcontractor: ${invoice.subcontractor}\nProject: ${invoice.project}\nTotal: ${invoice.total.toFixed(2)}\n\nLine Items:\n${lineItemsText}`);
+            }
+        }
+        
+        function editInvoice(invoiceId) {
+            alert('Edit functionality would open the invoice in the main form for modifications.');
+        }
+        
+        function exportLearningData() {
+            const data = {
+                subcontractors: Array.from(aiDatabase.subcontractors.entries()),
+                itemPatterns: Array.from(aiDatabase.itemPatterns.entries()),
+                pricePatterns: Array.from(aiDatabase.pricePatterns.entries()),
+                projectPatterns: Array.from(aiDatabase.projectPatterns.entries()),
+                stats: {
+                    invoicesProcessed: aiDatabase.invoicesProcessed,
+                    correctPredictions: aiDatabase.correctPredictions,
+                    totalPredictions: aiDatabase.totalPredictions,
+                    totalValueProcessed: aiDatabase.totalValueProcessed
+                },
+                settings: aiDatabase.settings,
+                exportDate: new Date().toISOString()
+            };
+            
+            const jsonData = JSON.stringify(data, null, 2);
+            downloadFile(`ai_training_data_${new Date().toISOString().split('T')[0]}.json`, jsonData, 'application/json');
+        }
+        
+        function importLearningData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        
+                        // Import patterns
+                        if (data.subcontractors) {
+                            data.subcontractors.forEach(([key, value]) => {
+                                aiDatabase.subcontractors.set(key, value);
+                            });
+                        }
+                        
+                        if (data.itemPatterns) {
+                            data.itemPatterns.forEach(([key, value]) => {
+                                aiDatabase.itemPatterns.set(key, value);
+                            });
+                        }
+                        
+                        if (data.projectPatterns) {
+                            data.projectPatterns.forEach(([key, value]) => {
+                                aiDatabase.projectPatterns.set(key, value);
+                            });
+                        }
+                        
+                        if (data.stats) {
+                            aiDatabase.invoicesProcessed = data.stats.invoicesProcessed || 0;
+                            aiDatabase.correctPredictions = data.stats.correctPredictions || 0;
+                            aiDatabase.totalPredictions = data.stats.totalPredictions || 0;
+                            aiDatabase.totalValueProcessed = data.stats.totalValueProcessed || 0;
+                        }
+                        
+                        updateStats();
+                        updatePatternDisplay();
+                        populateDataLists();
+                        saveData();
+                        
+                        const alert = document.createElement('div');
+                        alert.className = 'alert alert-success';
+                        alert.innerHTML = '<strong>Import Successful!</strong> AI training data has been imported and integrated.';
+                        document.querySelector('.main-content').insertBefore(alert, document.querySelector('.main-content').firstChild);
+                        setTimeout(() => alert.remove(), 5000);
+                        
+                    } catch (error) {
+                        alert('Error importing training data. Please check the file format.');
+                        console.error('Import error:', error);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+        
+        function resetAILearning() {
+            if (confirm('This will reset all AI learning data. Are you sure?')) {
+                aiDatabase.subcontractors.clear();
+                aiDatabase.itemPatterns.clear();
+                aiDatabase.pricePatterns.clear();
+                aiDatabase.projectPatterns.clear();
+                aiDatabase.correctPredictions = 0;
+                aiDatabase.totalPredictions = 0;
+                
+                // Reinitialize with base patterns
+                initializeAI();
+                
+                alert('AI learning data has been reset to factory defaults.');
+            }
+        }
+        
+        function exportReport(format) {
+            const reportType = document.getElementById('reportType').value;
+            const dateRange = document.getElementById('dateRange').value;
+            
+            if (format === 'pdf') {
+                alert('PDF export functionality would generate a formatted PDF report.');
+            } else if (format === 'excel') {
+                // Generate Excel-compatible CSV
+                const csvData = generateReportCSV();
+                downloadFile(`${reportType}_report_${new Date().toISOString().split('T')[0]}.csv`, csvData, 'text/csv');
+            }
+        }
+        
+        function generateReportCSV() {
+            const reportType = document.getElementById('reportType').value;
+            let csv = '';
+            
+            switch(reportType) {
+                case 'summary':
+                    csv = 'Metric,Value\n';
+                    csv += `Total Invoices,${aiDatabase.invoicesProcessed}\n`;
+                    csv += `Total Value,${aiDatabase.totalValueProcessed.toFixed(2)}\n`;
+                    csv += `AI Accuracy,${Math.round((aiDatabase.correctPredictions / Math.max(aiDatabase.totalPredictions, 1)) * 100)}%\n`;
+                    break;
+                    
+                case 'subcontractor':
+                    csv = 'Subcontractor,Invoice Count,Total Value,Average Value\n';
+                    const subTotals = new Map();
+                    const subCounts = new Map();
+                    
+                    aiDatabase.processingHistory.forEach(inv => {
+                        subTotals.set(inv.subcontractor, (subTotals.get(inv.subcontractor) || 0) + inv.total);
+                        subCounts.set(inv.subcontractor, (subCounts.get(inv.subcontractor) || 0) + 1);
+                    });
+                    
+                    Array.from(subTotals.entries()).forEach(([name, total]) => {
+                        const count = subCounts.get(name);
+                        csv += `"${name}",${count},${total.toFixed(2)},${(total/count).toFixed(2)}\n`;
+                    });
+                    break;
+            }
+            
+            return csv;
+        }
+        
+        function emailReport() {
+            alert('Email functionality would integrate with your email system to send the current report.');
+        }
+        
+        // Initialize the application
+        window.onload = function() {
+            console.log('Application loading...');
+            try {
+                initializeAI();
+                updatePatternDisplay();
+                console.log('Application loaded successfully');
+            } catch (error) {
+                console.error('Error during initialization:', error);
+            }
+            
+            // Auto-save every 30 seconds
+            setInterval(saveData, 30000);
+        };
+        
+        // Handle page unload
+        window.addEventListener('beforeunload', function(e) {
+            saveData();
+        });
+        
+        // Test function to verify JavaScript is working
+        function testFunction() {
+            console.log('JavaScript is working!');
+            alert('JavaScript is working!');
+        }
+    </script>
+</body>
+</html>
